@@ -3,10 +3,20 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-// Temporary downloads storage directory
-const DOWNLOADS_DIR = path.join(__dirname, '..', 'temp_downloads');
-if (!fs.existsSync(DOWNLOADS_DIR)) {
-  fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
+// Temporary downloads storage directory with serverless fallback
+let DOWNLOADS_DIR = path.join(__dirname, '..', 'temp_downloads');
+try {
+  if (!fs.existsSync(DOWNLOADS_DIR)) {
+    fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
+  }
+} catch (e) {
+  // Read-only filesystem fallback (e.g. Vercel Serverless / AWS Lambda)
+  DOWNLOADS_DIR = path.join(os.tmpdir(), 'fab_temp_downloads');
+  try {
+    if (!fs.existsSync(DOWNLOADS_DIR)) {
+      fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
+    }
+  } catch (err) {}
 }
 
 // In-memory active jobs tracker
@@ -80,18 +90,31 @@ function getExecutionConfig() {
   let command = 'python';
   let baseArgs = ['-m', 'yt_dlp'];
 
-  if (fs.existsSync(localYtDlpWin)) {
+  if (process.platform === 'win32' && fs.existsSync(localYtDlpWin)) {
     command = localYtDlpWin;
     baseArgs = [];
-  } else if (fs.existsSync(localYtDlpUnix)) {
-    command = localYtDlpUnix;
-    baseArgs = [];
+  } else if (process.platform !== 'win32' && fs.existsSync(localYtDlpUnix)) {
+    // On Linux / Serverless environments (Vercel, Railway, Render), ensure executable in /tmp
+    const tmpBin = path.join(os.tmpdir(), 'yt-dlp');
+    try {
+      if (!fs.existsSync(tmpBin) || fs.statSync(tmpBin).size !== fs.statSync(localYtDlpUnix).size) {
+        fs.copyFileSync(localYtDlpUnix, tmpBin);
+      }
+      fs.chmodSync(tmpBin, 0o755);
+      command = tmpBin;
+      baseArgs = [];
+    } catch (e) {
+      command = localYtDlpUnix;
+      baseArgs = [];
+    }
   }
 
-  // Detect FFmpeg path
+  // Detect FFmpeg path (Windows, Linux, system PATH)
   const candidateFfmpegDirs = [
     path.join(os.homedir(), 'AppData', 'Local', 'Microsoft', 'WinGet', 'Links'),
     localBin,
+    '/usr/bin',
+    '/usr/local/bin',
     'C:\\ffmpeg\\bin',
     'C:\\Program Files\\ffmpeg\\bin'
   ];

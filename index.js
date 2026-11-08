@@ -196,8 +196,13 @@ app.get('*', (req, res, next) => {
   next();
 });
 
-// Start Express Server
-app.listen(PORT, () => {
-  console.log(`YouTube Downloader Backend running at http://localhost:${PORT}`);
-});
+// Start Express Server only when run directly (local / container environments)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`YouTube Downloader Backend running at http://localhost:${PORT}`);
+  });
+}
+
+// Export for serverless environments (Vercel)
+module.exports = app;
 
