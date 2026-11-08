@@ -133,7 +133,22 @@ function getExecutionConfig() {
     }
   }
 
-  return { command, baseArgs, ffmpegLocation };
+  // Detect cookies (local cookies.txt or YOUTUBE_COOKIES environment variable)
+  let cookiesPath = null;
+  const localCookies = path.join(__dirname, '..', 'cookies.txt');
+  if (process.env.YOUTUBE_COOKIES) {
+    const tmpCookies = path.join(os.tmpdir(), 'youtube_cookies.txt');
+    try {
+      fs.writeFileSync(tmpCookies, process.env.YOUTUBE_COOKIES, 'utf8');
+      cookiesPath = tmpCookies;
+    } catch (e) {
+      console.error('Failed to write YOUTUBE_COOKIES to tmp:', e.message);
+    }
+  } else if (fs.existsSync(localCookies)) {
+    cookiesPath = localCookies;
+  }
+
+  return { command, baseArgs, ffmpegLocation, cookiesPath };
 }
 
 /**
@@ -141,7 +156,7 @@ function getExecutionConfig() {
  */
 async function getVideoInfo(url) {
   return new Promise((resolve, reject) => {
-    const { command, baseArgs, ffmpegLocation } = getExecutionConfig();
+    const { command, baseArgs, ffmpegLocation, cookiesPath } = getExecutionConfig();
 
     const args = [
       ...baseArgs,
@@ -153,6 +168,10 @@ async function getVideoInfo(url) {
       '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       '--js-runtimes', 'node'
     ];
+
+    if (cookiesPath) {
+      args.push('--cookies', cookiesPath);
+    }
 
     if (ffmpegLocation) {
       args.push('--ffmpeg-location', ffmpegLocation);
@@ -349,7 +368,7 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
 
   jobs.set(jobId, job);
 
-  const { command, baseArgs, ffmpegLocation } = getExecutionConfig();
+  const { command, baseArgs, ffmpegLocation, cookiesPath } = getExecutionConfig();
 
   // Build yt-dlp command args
   const args = [
@@ -363,6 +382,10 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     '--js-runtimes', 'node',
     '-o', outputTemplate
   ];
+
+  if (cookiesPath) {
+    args.push('--cookies', cookiesPath);
+  }
 
   if (ffmpegLocation) {
     args.push('--ffmpeg-location', ffmpegLocation);

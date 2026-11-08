@@ -11,10 +11,12 @@ temp_downloads/
 *.ytdl
 *.aria2
 
-# Environment variables
+# Environment variables & Cookies
 .env
 .env.local
 .env.*.local
+cookies.txt
+*cookies*.txt
 
 # Logs
 logs/
