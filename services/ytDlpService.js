@@ -93,6 +93,12 @@ function getExecutionConfig() {
   if (process.platform === 'win32' && fs.existsSync(localYtDlpWin)) {
     command = localYtDlpWin;
     baseArgs = [];
+  } else if (fs.existsSync('/usr/local/bin/yt-dlp')) {
+    command = '/usr/local/bin/yt-dlp';
+    baseArgs = [];
+  } else if (fs.existsSync('/usr/bin/yt-dlp')) {
+    command = '/usr/bin/yt-dlp';
+    baseArgs = [];
   } else if (process.platform !== 'win32' && fs.existsSync(localYtDlpUnix)) {
     // On Linux / Serverless environments (Vercel, Railway, Render), ensure executable in /tmp
     const tmpBin = path.join(os.tmpdir(), 'yt-dlp');
