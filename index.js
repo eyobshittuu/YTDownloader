@@ -30,6 +30,8 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     version: '1.0.4-format-all',
+    hasCookiesEnv: Boolean(process.env.YOUTUBE_COOKIES && process.env.YOUTUBE_COOKIES.length > 50),
+    cookiesLength: process.env.YOUTUBE_COOKIES ? process.env.YOUTUBE_COOKIES.length : 0,
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
