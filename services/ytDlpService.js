@@ -148,7 +148,9 @@ async function getVideoInfo(url) {
       '--dump-single-json',
       '--no-playlist',
       '--no-warnings',
-      '--no-check-certificates'
+      '--no-check-certificates',
+      '--extractor-args', 'youtube:player_client=ios,android,web',
+      '--js-runtimes', 'node'
     ];
 
     if (ffmpegLocation) {
@@ -355,6 +357,8 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     '--no-playlist',
     '--no-check-certificates',
     '--no-mtime',
+    '--extractor-args', 'youtube:player_client=ios,android,web',
+    '--js-runtimes', 'node',
     '-o', outputTemplate
   ];
 
@@ -373,11 +377,11 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     // Video with audio merged
     const q = quality || '1080';
     if (format === 'webm') {
-      args.push('-f', `bestvideo[height<=${q}][ext=webm]+bestaudio[ext=webm]/bestvideo[height<=${q}]+bestaudio/best[height<=${q}]`);
+      args.push('-f', `bestvideo[height<=${q}][ext=webm]+bestaudio[ext=webm]/bestvideo[height<=${q}]+bestaudio/best[height<=${q}]/bestvideo+bestaudio/best`);
       args.push('--merge-output-format', 'webm');
     } else {
       // Default MP4 with AAC
-      args.push('-f', `bestvideo[height<=${q}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=${q}]+bestaudio/best[height<=${q}]`);
+      args.push('-f', `bestvideo[height<=${q}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=${q}]+bestaudio/best[height<=${q}]/bestvideo+bestaudio/best`);
       args.push('--merge-output-format', 'mp4');
     }
   }
