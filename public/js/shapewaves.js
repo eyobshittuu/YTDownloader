@@ -155,7 +155,7 @@
 
     // Offscreen mask canvas for text
     const maskCanvas = document.createElement('canvas');
-    const maskCtx = maskCanvas.getContext('2d');
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
 
     function updateMask() {
       if (!opt.text) {
