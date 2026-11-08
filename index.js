@@ -29,12 +29,36 @@ if (fs.existsSync(publicDir)) {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '1.0.4-format-all',
+    version: '1.0.5-cookie-normalize',
     hasCookiesEnv: Boolean(process.env.YOUTUBE_COOKIES && process.env.YOUTUBE_COOKIES.length > 50),
     cookiesLength: process.env.YOUTUBE_COOKIES ? process.env.YOUTUBE_COOKIES.length : 0,
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
+});
+
+// Diagnostic endpoint to inspect cookie normalization (no private values revealed)
+app.get('/api/debug-cookies', (req, res) => {
+  const os = require('os');
+  const tmpCookies = path.join(os.tmpdir(), 'youtube_cookies.txt');
+  if (fs.existsSync(tmpCookies)) {
+    const content = fs.readFileSync(tmpCookies, 'utf8');
+    const lines = content.split('\n');
+    res.json({
+      exists: true,
+      size: content.length,
+      linesCount: lines.length,
+      firstLine: lines[0]?.slice(0, 40),
+      hasYoutubeDomain: content.includes('youtube.com'),
+      sampleDomains: lines.filter(l => l && !l.startsWith('#')).slice(0, 5).map(l => l.split('\t')[0])
+    });
+  } else {
+    res.json({
+      exists: false,
+      hasEnv: Boolean(process.env.YOUTUBE_COOKIES),
+      envLength: process.env.YOUTUBE_COOKIES ? process.env.YOUTUBE_COOKIES.length : 0
+    });
+  }
 });
 
 // Fetch video info and formats

@@ -139,7 +139,19 @@ function getExecutionConfig() {
   if (process.env.YOUTUBE_COOKIES) {
     const tmpCookies = path.join(os.tmpdir(), 'youtube_cookies.txt');
     try {
-      fs.writeFileSync(tmpCookies, process.env.YOUTUBE_COOKIES, 'utf8');
+      let content = process.env.YOUTUBE_COOKIES.trim();
+      // Handle escaped newlines/tabs from environment variable UI inputs
+      if (content.includes('\\n')) {
+        content = content.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+      }
+      if (content.includes('\\t')) {
+        content = content.replace(/\\t/g, '\t');
+      }
+      // Ensure valid Netscape cookie file header
+      if (!content.startsWith('# Netscape') && !content.startsWith('# HTTP Cookie')) {
+        content = '# Netscape HTTP Cookie File\n# Generated file\n\n' + content;
+      }
+      fs.writeFileSync(tmpCookies, content, 'utf8');
       cookiesPath = tmpCookies;
     } catch (e) {
       console.error('Failed to write YOUTUBE_COOKIES to tmp:', e.message);
@@ -163,15 +175,14 @@ async function getVideoInfo(url) {
       '--dump-single-json',
       '-f', 'all',
       '--no-playlist',
-      '--no-warnings',
       '--no-check-certificates',
-      '--extractor-args', cookiesPath ? 'youtube:player_client=web,android' : 'youtube:player_client=android,web',
-      '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       '--js-runtimes', 'node'
     ];
 
     if (cookiesPath) {
       args.push('--cookies', cookiesPath);
+    } else {
+      args.push('--extractor-args', 'youtube:player_client=android,web');
     }
 
     if (ffmpegLocation) {
@@ -378,14 +389,14 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     '--no-playlist',
     '--no-check-certificates',
     '--no-mtime',
-    '--extractor-args', cookiesPath ? 'youtube:player_client=web,android' : 'youtube:player_client=android,web',
-    '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     '--js-runtimes', 'node',
     '-o', outputTemplate
   ];
 
   if (cookiesPath) {
     args.push('--cookies', cookiesPath);
+  } else {
+    args.push('--extractor-args', 'youtube:player_client=android,web');
   }
 
   if (ffmpegLocation) {
