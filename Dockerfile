@@ -1,13 +1,14 @@
 # Use official lightweight Node.js 20 LTS base image
 FROM node:20-bullseye-slim
 
-# Install FFmpeg, Python 3, and curl
+# Install FFmpeg, Python 3, and yt-dlp
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     python3 \
     python3-pip \
     curl \
     ca-certificates \
+ && pip3 install --no-cache-dir yt-dlp \
  && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -32,3 +33,4 @@ EXPOSE 5000
 
 # Start server
 CMD ["node", "index.js"]
+
