@@ -161,10 +161,11 @@ async function getVideoInfo(url) {
     const args = [
       ...baseArgs,
       '--dump-single-json',
+      '-f', 'all',
       '--no-playlist',
       '--no-warnings',
       '--no-check-certificates',
-      '--extractor-args', 'youtube:player_client=ios,android,web',
+      '--extractor-args', cookiesPath ? 'youtube:player_client=web,android' : 'youtube:player_client=android,web',
       '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       '--js-runtimes', 'node'
     ];
@@ -377,7 +378,7 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     '--no-playlist',
     '--no-check-certificates',
     '--no-mtime',
-    '--extractor-args', 'youtube:player_client=ios,android,web',
+    '--extractor-args', cookiesPath ? 'youtube:player_client=web,android' : 'youtube:player_client=android,web',
     '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     '--js-runtimes', 'node',
     '-o', outputTemplate

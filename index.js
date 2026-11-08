@@ -29,7 +29,7 @@ if (fs.existsSync(publicDir)) {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '1.0.3-android-player',
+    version: '1.0.4-format-all',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
