@@ -154,10 +154,21 @@ function getExecutionConfig() {
     }
   }
 
-  // Detect cookies (local cookies.txt or YOUTUBE_COOKIES environment variable)
+  // Cookie detection strategy:
+  // 1. YOUTUBE_BROWSER environment variable (e.g., "chrome" or "firefox")
+  // 2. YOUTUBE_COOKIES environment variable (cookie file content)
+  // 3. Local cookies.txt file
+  
   let cookiesPath = null;
-  const localCookies = path.join(__dirname, '..', 'cookies.txt');
-  if (process.env.YOUTUBE_COOKIES) {
+  let cookiesFromBrowser = null;
+  
+  // Option 1: Use cookies directly from browser (best - always fresh)
+  if (process.env.YOUTUBE_BROWSER) {
+    cookiesFromBrowser = process.env.YOUTUBE_BROWSER.toLowerCase();
+    console.log(`[INFO] Using cookies from browser: ${cookiesFromBrowser}`);
+  }
+  // Option 2: Environment variable with cookie content
+  else if (process.env.YOUTUBE_COOKIES) {
     const tmpCookies = path.join(os.tmpdir(), 'youtube_cookies.txt');
     try {
       let content = process.env.YOUTUBE_COOKIES.trim();
@@ -174,14 +185,21 @@ function getExecutionConfig() {
       }
       fs.writeFileSync(tmpCookies, content, 'utf8');
       cookiesPath = tmpCookies;
+      console.log('[INFO] Using cookies from YOUTUBE_COOKIES environment variable');
     } catch (e) {
       console.error('Failed to write YOUTUBE_COOKIES to tmp:', e.message);
     }
-  } else if (fs.existsSync(localCookies)) {
-    cookiesPath = localCookies;
+  }
+  // Option 3: Local cookies.txt file
+  else {
+    const localCookies = path.join(__dirname, '..', 'cookies.txt');
+    if (fs.existsSync(localCookies)) {
+      cookiesPath = localCookies;
+      console.log('[INFO] Using cookies from local cookies.txt file');
+    }
   }
 
-  return { command, baseArgs, ffmpegLocation, cookiesPath };
+  return { command, baseArgs, ffmpegLocation, cookiesPath, cookiesFromBrowser };
 }
 
 /**
@@ -194,7 +212,7 @@ async function getVideoInfo(url, clientIp = 'unknown') {
   }
   
   return new Promise((resolve, reject) => {
-    const { command, baseArgs, ffmpegLocation, cookiesPath } = getExecutionConfig();
+    const { command, baseArgs, ffmpegLocation, cookiesPath, cookiesFromBrowser } = getExecutionConfig();
 
     const args = [
       ...baseArgs,
@@ -216,13 +234,18 @@ async function getVideoInfo(url, clientIp = 'unknown') {
       '--referer', 'https://www.youtube.com/'
     ];
 
-    if (cookiesPath) {
+    // Cookie strategy: browser > file > none
+    if (cookiesFromBrowser) {
+      // Use cookies directly from browser (always fresh, never rotated)
+      args.push('--cookies-from-browser', cookiesFromBrowser);
+      console.log(`[INFO] Extracting fresh cookies from ${cookiesFromBrowser} browser`);
+    } else if (cookiesPath) {
       args.push('--cookies', cookiesPath);
       // Use web client when we have cookies - most reliable
       args.push('--extractor-args', 'youtube:player_client=web,mweb;player_skip=configs');
+      console.log('[INFO] Using cookie file for authentication');
     } else {
       // Without cookies, try mobile clients (less restricted)
-      // Remove invalid po_token parameter
       args.push('--extractor-args', 'youtube:player_client=mweb,android;player_skip=webpage,configs');
       
       // Log warning about cookies
@@ -430,7 +453,7 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
 
   jobs.set(jobId, job);
 
-  const { command, baseArgs, ffmpegLocation, cookiesPath } = getExecutionConfig();
+  const { command, baseArgs, ffmpegLocation, cookiesPath, cookiesFromBrowser } = getExecutionConfig();
 
   // Build yt-dlp command args
   const args = [
@@ -454,13 +477,17 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     '-o', outputTemplate
   ];
 
-  if (cookiesPath) {
+  // Cookie strategy: browser > file > none
+  if (cookiesFromBrowser) {
+    // Use cookies directly from browser (always fresh, never rotated)
+    args.push('--cookies-from-browser', cookiesFromBrowser);
+    console.log(`[INFO] Extracting fresh cookies from ${cookiesFromBrowser} browser`);
+  } else if (cookiesPath) {
     args.push('--cookies', cookiesPath);
     // Use web client when we have cookies - most reliable
     args.push('--extractor-args', 'youtube:player_client=web,mweb;player_skip=configs');
   } else {
     // Without cookies, try mobile clients (less restricted)
-    // Remove invalid po_token and other problematic parameters
     args.push('--extractor-args', 'youtube:player_client=mweb,android;player_skip=webpage,configs');
     
     // Log warning about cookies
