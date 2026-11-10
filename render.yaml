@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: youtube-downloader
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: chmod +x render-build.sh && ./render-build.sh
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+    autoDeploy: true

@@ -201,14 +201,25 @@ async function getVideoInfo(url, clientIp = 'unknown') {
       '--dump-single-json',
       '-f', 'all',
       '--no-playlist',
-      '--no-check-certificates'
+      '--no-check-certificates',
+      // Force IPv4 to avoid IPv6 issues
+      '--force-ipv4',
+      // Add more relaxed timeout
+      '--socket-timeout', '30',
+      // Retry on failures
+      '--retries', '3',
+      // Add user agent
+      '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     ];
 
     if (cookiesPath) {
       args.push('--cookies', cookiesPath);
+      // Use web client when we have cookies
+      args.push('--extractor-args', 'youtube:player_client=web');
     } else {
-      // Enhanced client spoofing for better reliability
-      args.push('--extractor-args', 'youtube:player_client=ios,web;player_skip=webpage,configs');
+      // Multi-client fallback strategy for cookie-less operation
+      // Try multiple clients in order until one works
+      args.push('--extractor-args', 'youtube:player_client=ios,mweb,android;player_skip=webpage,configs;po_token=');
     }
     
     // Add OAuth if available
@@ -421,14 +432,24 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     '--no-playlist',
     '--no-check-certificates',
     '--no-mtime',
+    // Force IPv4 to avoid IPv6 issues
+    '--force-ipv4',
+    // Add more relaxed timeout
+    '--socket-timeout', '30',
+    // Retry on failures
+    '--retries', '3',
+    // Add user agent
+    '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     '-o', outputTemplate
   ];
 
   if (cookiesPath) {
     args.push('--cookies', cookiesPath);
+    // Use web client when we have cookies
+    args.push('--extractor-args', 'youtube:player_client=web');
   } else {
-    // Enhanced client spoofing for better reliability
-    args.push('--extractor-args', 'youtube:player_client=ios,web;player_skip=webpage,configs');
+    // Multi-client fallback strategy for cookie-less operation
+    args.push('--extractor-args', 'youtube:player_client=ios,mweb,android;player_skip=webpage,configs;po_token=');
   }
   
   // Add OAuth if available
