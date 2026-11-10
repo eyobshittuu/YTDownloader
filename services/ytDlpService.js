@@ -218,12 +218,15 @@ async function getVideoInfo(url, clientIp = 'unknown') {
 
     if (cookiesPath) {
       args.push('--cookies', cookiesPath);
-      // Use web client when we have cookies
-      args.push('--extractor-args', 'youtube:player_client=web,mweb');
+      // Use web client when we have cookies - most reliable
+      args.push('--extractor-args', 'youtube:player_client=web,mweb;player_skip=configs');
     } else {
-      // Aggressive multi-client fallback with all available options
-      // This tries every possible player client until one works
-      args.push('--extractor-args', 'youtube:player_client=mweb,android,ios,tv_embedded,web;player_skip=webpage,configs,js;innertube_host=studio.youtube.com;innertube_key=;po_token=');
+      // Without cookies, try mobile clients (less restricted)
+      // Remove invalid po_token parameter
+      args.push('--extractor-args', 'youtube:player_client=mweb,android;player_skip=webpage,configs');
+      
+      // Log warning about cookies
+      console.warn('[WARNING] No cookies found. YouTube may block requests. For reliable operation, add cookies via YOUTUBE_COOKIES environment variable or cookies.txt file.');
     }
     
     // Add OAuth if available
@@ -453,11 +456,15 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
 
   if (cookiesPath) {
     args.push('--cookies', cookiesPath);
-    // Use web client when we have cookies
-    args.push('--extractor-args', 'youtube:player_client=web,mweb');
+    // Use web client when we have cookies - most reliable
+    args.push('--extractor-args', 'youtube:player_client=web,mweb;player_skip=configs');
   } else {
-    // Aggressive multi-client fallback with all available options
-    args.push('--extractor-args', 'youtube:player_client=mweb,android,ios,tv_embedded,web;player_skip=webpage,configs,js;innertube_host=studio.youtube.com;innertube_key=;po_token=');
+    // Without cookies, try mobile clients (less restricted)
+    // Remove invalid po_token and other problematic parameters
+    args.push('--extractor-args', 'youtube:player_client=mweb,android;player_skip=webpage,configs');
+    
+    // Log warning about cookies
+    console.warn('[WARNING] No cookies found. YouTube may block requests. For reliable operation, add cookies via YOUTUBE_COOKIES environment variable or cookies.txt file.');
   }
   
   // Add OAuth if available
