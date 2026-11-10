@@ -207,19 +207,23 @@ async function getVideoInfo(url, clientIp = 'unknown') {
       // Add more relaxed timeout
       '--socket-timeout', '30',
       // Retry on failures
-      '--retries', '3',
+      '--retries', '5',
+      // Ignore errors and continue
+      '--no-abort-on-error',
       // Add user agent
-      '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      // Add referer
+      '--referer', 'https://www.youtube.com/'
     ];
 
     if (cookiesPath) {
       args.push('--cookies', cookiesPath);
       // Use web client when we have cookies
-      args.push('--extractor-args', 'youtube:player_client=web');
+      args.push('--extractor-args', 'youtube:player_client=web,mweb');
     } else {
-      // Multi-client fallback strategy for cookie-less operation
-      // Try multiple clients in order until one works
-      args.push('--extractor-args', 'youtube:player_client=ios,mweb,android;player_skip=webpage,configs;po_token=');
+      // Aggressive multi-client fallback with all available options
+      // This tries every possible player client until one works
+      args.push('--extractor-args', 'youtube:player_client=mweb,android,ios,tv_embedded,web;player_skip=webpage,configs,js;innertube_host=studio.youtube.com;innertube_key=;po_token=');
     }
     
     // Add OAuth if available
@@ -437,19 +441,23 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     // Add more relaxed timeout
     '--socket-timeout', '30',
     // Retry on failures
-    '--retries', '3',
+    '--retries', '5',
+    // Ignore errors and continue
+    '--no-abort-on-error',
     // Add user agent
     '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    // Add referer
+    '--referer', 'https://www.youtube.com/',
     '-o', outputTemplate
   ];
 
   if (cookiesPath) {
     args.push('--cookies', cookiesPath);
     // Use web client when we have cookies
-    args.push('--extractor-args', 'youtube:player_client=web');
+    args.push('--extractor-args', 'youtube:player_client=web,mweb');
   } else {
-    // Multi-client fallback strategy for cookie-less operation
-    args.push('--extractor-args', 'youtube:player_client=ios,mweb,android;player_skip=webpage,configs;po_token=');
+    // Aggressive multi-client fallback with all available options
+    args.push('--extractor-args', 'youtube:player_client=mweb,android,ios,tv_embedded,web;player_skip=webpage,configs,js;innertube_host=studio.youtube.com;innertube_key=;po_token=');
   }
   
   // Add OAuth if available
