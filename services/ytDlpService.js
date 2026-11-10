@@ -22,6 +22,27 @@ try {
 // In-memory active jobs tracker
 const jobs = new Map();
 
+// Rate limiting: track recent requests to prevent abuse
+const requestTracker = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 10;
+
+function checkRateLimit(identifier) {
+  const now = Date.now();
+  const requests = requestTracker.get(identifier) || [];
+  
+  // Clean old requests
+  const recentRequests = requests.filter(time => now - time < RATE_LIMIT_WINDOW);
+  
+  if (recentRequests.length >= MAX_REQUESTS_PER_WINDOW) {
+    return false;
+  }
+  
+  recentRequests.push(now);
+  requestTracker.set(identifier, recentRequests);
+  return true;
+}
+
 // Helper to sanitize filenames for Windows & Unix
 function sanitizeFilename(name) {
   return (name || 'video')
@@ -166,7 +187,12 @@ function getExecutionConfig() {
 /**
  * Fetch video metadata and available formats using yt-dlp
  */
-async function getVideoInfo(url) {
+async function getVideoInfo(url, clientIp = 'unknown') {
+  // Rate limiting check
+  if (!checkRateLimit(clientIp)) {
+    throw new Error('Rate limit exceeded. Please wait before making more requests.');
+  }
+  
   return new Promise((resolve, reject) => {
     const { command, baseArgs, ffmpegLocation, cookiesPath } = getExecutionConfig();
 
@@ -175,14 +201,20 @@ async function getVideoInfo(url) {
       '--dump-single-json',
       '-f', 'all',
       '--no-playlist',
-      '--no-check-certificates',
-      '--js-runtimes', 'node'
+      '--no-check-certificates'
     ];
 
     if (cookiesPath) {
       args.push('--cookies', cookiesPath);
     } else {
-      args.push('--extractor-args', 'youtube:player_client=android,web');
+      // Enhanced client spoofing for better reliability
+      args.push('--extractor-args', 'youtube:player_client=ios,web;player_skip=webpage,configs');
+    }
+    
+    // Add OAuth if available
+    if (process.env.YOUTUBE_OAUTH) {
+      args.push('--username', 'oauth2');
+      args.push('--password', '');
     }
 
     if (ffmpegLocation) {
@@ -389,14 +421,20 @@ function startDownload({ url, format, quality, isAudioOnly, title }) {
     '--no-playlist',
     '--no-check-certificates',
     '--no-mtime',
-    '--js-runtimes', 'node',
     '-o', outputTemplate
   ];
 
   if (cookiesPath) {
     args.push('--cookies', cookiesPath);
   } else {
-    args.push('--extractor-args', 'youtube:player_client=android,web');
+    // Enhanced client spoofing for better reliability
+    args.push('--extractor-args', 'youtube:player_client=ios,web;player_skip=webpage,configs');
+  }
+  
+  // Add OAuth if available
+  if (process.env.YOUTUBE_OAUTH) {
+    args.push('--username', 'oauth2');
+    args.push('--password', '');
   }
 
   if (ffmpegLocation) {

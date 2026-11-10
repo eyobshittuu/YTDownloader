@@ -69,7 +69,8 @@ app.post('/api/info', async (req, res) => {
       return res.status(400).json({ error: 'Please provide a valid YouTube URL.' });
     }
 
-    const info = await getVideoInfo(url.trim());
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    const info = await getVideoInfo(url.trim(), clientIp);
     return res.json({ success: true, data: info });
   } catch (error) {
     console.error('Error fetching video info:', error.message);
@@ -87,7 +88,8 @@ app.get('/api/info', async (req, res) => {
       return res.status(400).json({ error: 'Please provide a valid YouTube URL in the url query parameter.' });
     }
 
-    const info = await getVideoInfo(url.trim());
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    const info = await getVideoInfo(url.trim(), clientIp);
     return res.json({ success: true, data: info });
   } catch (error) {
     console.error('Error fetching video info:', error.message);
